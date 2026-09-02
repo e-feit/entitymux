@@ -64,7 +64,7 @@ class HibernateSpiQueryBoundaryTests {
     @Test
     void countAndPaginationRemainOnThePrimaryStore() {
         Long count = entityManager.createQuery(
-                        "select count(d) from Document d", Long.class)
+                        "select count(d) from Document d where d.title not like 'SPI %'", Long.class)
                 .getSingleResult();
         List<Document> page = entityManager.createQuery(
                         "select d from Document d order by d.id", Document.class)
