@@ -303,7 +303,7 @@ Noch keine.
        }
 
        @Test
-       void countAndPaginationAreHandledByTheDatabase() {
+       void countAndPaginationReturnExpectedResults() {
            Long count = entityManager.createQuery(
                            "select count(d) from Document d", Long.class)
                    .getSingleResult();
@@ -397,7 +397,7 @@ Noch keine.
    | `EntityManager.find()` | entity loading and persistence-context identity |
    | JPQL | filtering and ordering |
    | Criteria API | association-path filtering |
-   | Count and pagination | database-side SQL semantics |
+   | Count and pagination | query result semantics |
    | Lazy loading | to-one and to-many associations |
    | `JOIN FETCH` | eager association loading for one query |
 

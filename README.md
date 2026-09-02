@@ -44,3 +44,22 @@ EntityMux is a playground and prototype. Its API and architecture may change com
 ```bash
 ./mvnw spring-boot:run
 ```
+
+## In-Memory Reference Playground
+
+The first executable experiment is a read-only reference baseline backed only by
+H2 in memory. It records regular Hibernate behavior before either routing approach
+changes it.
+
+| Behavior | Reference coverage |
+| --- | --- |
+| `EntityManager.find()` | entity loading and persistence-context identity |
+| JPQL | filtering and ordering |
+| Criteria API | association-path filtering |
+| Count and pagination | query result semantics |
+| Lazy loading | to-one and to-many associations |
+| `JOIN FETCH` | eager association loading for one query |
+
+This baseline is not an EntityMux implementation. Hibernate SPI and
+JDBC/DataSource routing remain separate research directions that must be compared
+against the same behavior matrix. Cross-source joins remain unsupported.
