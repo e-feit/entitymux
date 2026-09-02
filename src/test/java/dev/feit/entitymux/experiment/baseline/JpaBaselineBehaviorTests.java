@@ -71,7 +71,7 @@ class JpaBaselineBehaviorTests {
     }
 
     @Test
-    void countAndPaginationAreHandledByTheDatabase() {
+    void countAndPaginationReturnExpectedResults() {
         Long count = entityManager.createQuery(
                         "select count(d) from Document d", Long.class)
                 .getSingleResult();
