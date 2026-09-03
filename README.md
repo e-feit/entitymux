@@ -22,7 +22,7 @@ EntityMux is a playground and prototype. Its API and architecture may change com
 ## Non-Goals / Current Scope
 
 - Spring Boot is the only supported runtime for now; WildFly may be considered later.
-- The test-only Hibernate SPI experiment routes direct `EntityManager.find(Document.class, id)` calls only; it is not a general EntityMux implementation.
+- The test-only Hibernate SPI experiments route selected direct `EntityManager.find(Document.class, id)` calls only; they are not a general EntityMux implementation.
 - Production readiness and stable APIs are not current goals.
 
 ## Technology
@@ -74,7 +74,7 @@ Hibernate load listeners still handle every other entity type and load mode.
 | --- | --- |
 | `EntityManager.find(Document.class, id)` | routed by entity type |
 | `EntityManager.find(User.class, id)` | unchanged primary load |
-| Primary persistence-context membership | routed document is detached |
+| Primary persistence-context membership | routed document is not managed |
 | Repeated `find()` identity | not preserved |
 | Lazy to-one association | cannot initialize after the alternative session closes |
 | JPQL and Criteria API | bypass the direct `GET` listener |
@@ -87,3 +87,30 @@ a naive `GET` listener is not a transparent routing architecture. It does not
 preserve the primary persistence context, lazy associations, arbitrary queries,
 collections, or fetch joins. The JDBC/DataSource direction remains a separate
 research spike; cross-source joins and write routing remain unsupported.
+
+## Synthetic Document Provider Spike
+
+The second Hibernate SPI experiment keeps `User` and regular `Document` rows
+in the primary H2 database while generating the reserved document IDs `1000`
+and `1001` on demand. The provider returns plain data, and the test-only load
+listener creates mapped `Document` instances through Hibernate metadata. A
+`StatementInspector` verifies the executed SQL without interpreting it.
+
+| Behavior | Observed result |
+| --- | --- |
+| `find(Document.class, 1000L / 1001L)` | generated on demand without executing SQL |
+| `find(User.class, 1L)` | loaded from the primary H2 database |
+| `find(Document.class, 10L)` | loaded from the primary H2 database |
+| Primary persistence-context membership | synthetic document is not managed |
+| Repeated synthetic `find()` identity | not preserved |
+| Synthetic to-one owner | resolves `User#1` from H2 while the primary session is open |
+| JPQL and Criteria API | do not include synthetic documents |
+| Count and pagination | include primary documents only |
+| Lazy to-many collection | includes primary documents only |
+| `JOIN FETCH` | cannot discover a synthetic document |
+
+This proves that a direct entity load can be supplied entirely on the fly while
+other data continues to come from H2. It does not provide transparent query
+federation: synthetic documents are absent from arbitrary queries, collections,
+counts, pagination, and fetch joins. The experiment remains read-only and
+test-only; cross-source joins and write routing remain unsupported.
