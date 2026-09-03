@@ -22,7 +22,7 @@ EntityMux is a playground and prototype. Its API and architecture may change com
 ## Non-Goals / Current Scope
 
 - Spring Boot is the only supported runtime for now; WildFly may be considered later.
-- The test-only Hibernate SPI experiments route selected direct `EntityManager.find(Document.class, id)` calls only; they are not a general EntityMux implementation.
+- The test-only Hibernate SPI experiments route selected direct `EntityManager.find(Document.class, id)` calls only; the separate H2-materialization spike projects provider data into H2 during test setup. Neither is a general EntityMux implementation.
 - Production readiness and stable APIs are not current goals.
 
 ## Technology
@@ -114,3 +114,27 @@ other data continues to come from H2. It does not provide transparent query
 federation: synthetic documents are absent from arbitrary queries, collections,
 counts, pagination, and fetch joins. The experiment remains read-only and
 test-only; cross-source joins and write routing remain unsupported.
+
+## H2 Materialization Spike
+
+The third experiment lets a test provider generate two document records and
+inserts them into the primary H2 database when the test application context is
+ready. The behavior tests then use neither a Hibernate load hook nor custom SQL
+handling: Hibernate reads the resulting five H2 document rows normally.
+
+| Behavior | Observed result |
+| --- | --- |
+| `EntityManager.find(Document.class, 1000L)` | regular managed H2 entity |
+| Repeated `find()` identity | preserved by the primary persistence context |
+| JPQL and Criteria API | include materialized documents |
+| Count and pagination | include all five H2 documents |
+| Lazy to-one owner | loads normally from primary H2 |
+| Lazy to-many collection | includes the materialized document |
+| `JOIN FETCH` | fetches the materialized document and its H2 owner |
+
+This shows that provider data can be projected into H2 while retaining ordinary
+JPA read behavior. The provider data have physically become H2 rows; this is
+not SQL-free on-the-fly loading or query federation. The setup-time inserts are
+only a test fixture, not write routing, and say nothing about production
+synchronization, refresh, or transaction isolation. Cross-source joins and
+write routing remain unsupported.
